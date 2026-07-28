@@ -1,18 +1,26 @@
 "use client";
 
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { ArticleSummary } from "@/lib/types";
 import { HeartIcon, ShareIcon } from "./icons";
 
 export function ArticleCard({
   article,
   onLike,
+  className = "",
+  style,
 }: {
   article: ArticleSummary;
   onLike: (id: string) => void;
+  className?: string;
+  style?: CSSProperties;
 }) {
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl bg-[#141d2f] shadow-lg shadow-black/20">
+    <article
+      className={`flex flex-col overflow-hidden rounded-2xl bg-[#141d2f] shadow-lg shadow-black/20 ${className}`}
+      style={style}
+    >
       <div className="relative h-52 w-full">
         <Image
           src={article.image}

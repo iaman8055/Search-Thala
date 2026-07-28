@@ -199,7 +199,7 @@ export function MobileFeed() {
 
   return (
     <div className="relative flex h-[calc(100dvh-56px)] flex-col overflow-hidden bg-[#0b1120]">
-      {showAd && <AdInterstitial onClose={dismissAd} />}
+      {showAd && <AdInterstitial onClose={dismissAd} seed={swipeCountRef.current} />}
 
       <div className="flex-1 overflow-hidden">
         <CategoryFeed

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArticleCard } from "./ArticleCard";
 import { AdCard } from "./AdSlot";
 import { ArticleSummary } from "@/lib/types";
@@ -27,6 +27,15 @@ export function DesktopGrid() {
   const hasMore = data?.hasMore ?? false;
   const loadingMore = isFetching && page > 1;
 
+  // Cards already committed to the DOM shouldn't replay their entrance
+  // animation on unrelated re-renders (likes, etc) — only ids not yet seen
+  // get the animate-in treatment, and this ref is updated after paint so
+  // the render that introduces them still sees them as "new".
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    articles.forEach((a) => seenIdsRef.current.add(a.id));
+  }, [articles]);
+
   function handleLike(id: string) {
     const target = articles.find((a) => a.id === id);
     if (!target) return;
@@ -46,11 +55,18 @@ export function DesktopGrid() {
   }
 
   const items: (
-    | { kind: "article"; article: ArticleSummary }
+    | { kind: "article"; article: ArticleSummary; delayMs: number | null }
     | { kind: "ad"; key: string }
   )[] = [];
+  // Desktop grid is 3 columns wide, so stagger by row (3 cards land
+  // together) rather than card-by-card.
+  const CARDS_PER_ROW = 3;
+  let newCount = 0;
   articles.forEach((article, idx) => {
-    items.push({ kind: "article", article });
+    const isNew = !seenIdsRef.current.has(article.id);
+    const delayMs = isNew ? Math.floor(newCount / CARDS_PER_ROW) * 120 : null;
+    if (isNew) newCount++;
+    items.push({ kind: "article", article, delayMs });
     if ((idx + 1) % 6 === 0) items.push({ kind: "ad", key: `ad-${idx}` });
   });
 
@@ -65,9 +81,15 @@ export function DesktopGrid() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) =>
               item.kind === "article" ? (
-                <ArticleCard key={item.article.id} article={item.article} onLike={handleLike} />
+                <ArticleCard
+                  key={item.article.id}
+                  article={item.article}
+                  onLike={handleLike}
+                  className={item.delayMs !== null ? "animate-card-in" : undefined}
+                  style={item.delayMs !== null ? { animationDelay: `${item.delayMs}ms` } : undefined}
+                />
               ) : (
-                <AdCard key={item.key} />
+                <AdCard key={item.key} seed={item.key} />
               )
             )}
           </div>
