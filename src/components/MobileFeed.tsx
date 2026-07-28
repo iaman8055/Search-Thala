@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { useSwipeable } from "react-swipeable";
 import { CategoryTabs } from "./CategoryTabs";
+import { AdInterstitial } from "./AdSlot";
 import { HeartIcon, ShareIcon, CalendarIcon, SearchIcon, HomeIcon, ProfileIcon } from "./icons";
 import { ArticleSummary, CATEGORIES, Category } from "@/lib/types";
 import { useDeviceId } from "@/lib/useDeviceId";
@@ -13,14 +14,18 @@ import { useAppDispatch } from "@/store/hooks";
 
 const FEED_LIMIT = 50;
 
+const SWIPES_BEFORE_AD = 3;
+
 function CategoryFeed({
   category,
   deviceId,
+  runOrQueue,
   onCategoryChange,
   onSelectCategory,
 }: {
   category: Category;
   deviceId: string;
+  runOrQueue: (action: () => void) => void;
   onCategoryChange: (direction: 1 | -1) => void;
   onSelectCategory: (category: Category) => void;
 }) {
@@ -49,7 +54,9 @@ function CategoryFeed({
 
   function goToArticle(direction: 1 | -1) {
     if (articles.length === 0) return;
-    setIndex((prev) => (prev + direction + articles.length) % articles.length);
+    runOrQueue(() => {
+      setIndex((prev) => (prev + direction + articles.length) % articles.length);
+    });
   }
 
   function handleLike() {
@@ -160,19 +167,45 @@ function CategoryFeed({
 export function MobileFeed() {
   const deviceId = useDeviceId();
   const [category, setCategory] = useState<Category>("top");
+  const [showAd, setShowAd] = useState(false);
+
+  const swipeCountRef = useRef(0);
+  const pendingActionRef = useRef<null | (() => void)>(null);
+
+  function runOrQueue(action: () => void) {
+    swipeCountRef.current += 1;
+    if (swipeCountRef.current % SWIPES_BEFORE_AD === 0) {
+      pendingActionRef.current = action;
+      setShowAd(true);
+    } else {
+      action();
+    }
+  }
 
   function changeCategory(direction: 1 | -1) {
-    const currentIdx = CATEGORIES.findIndex((c) => c.key === category);
-    const nextIdx = (currentIdx + direction + CATEGORIES.length) % CATEGORIES.length;
-    setCategory(CATEGORIES[nextIdx].key);
+    runOrQueue(() => {
+      const currentIdx = CATEGORIES.findIndex((c) => c.key === category);
+      const nextIdx = (currentIdx + direction + CATEGORIES.length) % CATEGORIES.length;
+      setCategory(CATEGORIES[nextIdx].key);
+    });
+  }
+
+  function dismissAd() {
+    setShowAd(false);
+    const action = pendingActionRef.current;
+    pendingActionRef.current = null;
+    if (action) action();
   }
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-[#0b1120]">
+      {showAd && <AdInterstitial onClose={dismissAd} />}
+
       <div className="flex-1 overflow-hidden">
         <CategoryFeed
           category={category}
           deviceId={deviceId}
+          runOrQueue={runOrQueue}
           onCategoryChange={changeCategory}
           onSelectCategory={setCategory}
         />
