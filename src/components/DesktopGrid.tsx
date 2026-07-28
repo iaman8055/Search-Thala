@@ -58,6 +58,9 @@ export function DesktopGrid() {
     | { kind: "article"; article: ArticleSummary; delayMs: number | null }
     | { kind: "ad"; key: string }
   )[] = [];
+  // Exactly one in-content ad slot, dropped in after the 4th article
+  // regardless of how many pages have loaded.
+  const IN_CONTENT_AFTER = 3;
   // Desktop grid is 3 columns wide, so stagger by row (3 cards land
   // together) rather than card-by-card.
   const CARDS_PER_ROW = 3;
@@ -67,7 +70,7 @@ export function DesktopGrid() {
     const delayMs = isNew ? Math.floor(newCount / CARDS_PER_ROW) * 120 : null;
     if (isNew) newCount++;
     items.push({ kind: "article", article, delayMs });
-    if ((idx + 1) % 6 === 0) items.push({ kind: "ad", key: `ad-${idx}` });
+    if (idx === IN_CONTENT_AFTER) items.push({ kind: "ad", key: `ad-${idx}` });
   });
 
   return (
@@ -89,7 +92,7 @@ export function DesktopGrid() {
                   style={item.delayMs !== null ? { animationDelay: `${item.delayMs}ms` } : undefined}
                 />
               ) : (
-                <AdCard key={item.key} seed={item.key} />
+                <AdCard key={item.key} />
               )
             )}
           </div>
