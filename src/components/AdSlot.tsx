@@ -1,21 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { useGptReady } from "./GptProvider";
 
 // Google's public GPT sample ad unit — always serves a house/test creative,
 // safe to request from local/dev environments, no AdSense account needed.
 const TEST_AD_UNIT_PATH = "/6355419/Travel/Europe/France/Paris";
-// This demo ad unit reliably fills one slot per page for a given size, but
-// two simultaneous requests for the *same* unit+size come back as a
-// legitimate no-fill. Google's own multi-ad sample for this exact unit only
-// maps creatives to two sizes — 300x250 and 728x90 — so those are the only
-// two that reliably fill; other IAB sizes (250x250, 320x250, ...) come back
-// empty because the demo line item was never configured for them.
-export const IN_CONTENT_SIZES: [number, number][] = [
-  [300, 250], // Medium Rectangle
-  [728, 90], // Leaderboard
-];
 // GPT calls slotRenderEnded even on a genuine fill, but if the ad request
 // itself never fires (script blocked by an ad blocker, offline, etc.) we'd
 // otherwise sit on a blank box forever — fall back to a message instead.
@@ -78,25 +69,18 @@ function GptSlot({ size, className }: { size: [number, number]; className?: stri
   );
 }
 
-/**
- * In-content unit shown inside the article grid. Pass an increasing
- * `variant` for each simultaneous instance on the page (0, 1, 2, ...) so
- * concurrent slots rotate through different sizes instead of colliding.
- */
-export function AdCard({ className, variant = 0 }: { className?: string; variant?: number }) {
-  const size = IN_CONTENT_SIZES[variant % IN_CONTENT_SIZES.length];
-  const isBanner = size[1] <= 100;
+/** 300x250 in-content unit shown inside the article grid. */
+export function AdCard({ className, style }: { className?: string; style?: CSSProperties }) {
   return (
     <div
-      className={`relative flex flex-col overflow-hidden rounded-2xl border border-dashed border-white/15 bg-[#141d2f] ${
-        isBanner ? "min-h-[7rem] justify-center py-4" : "h-full min-h-[19rem]"
-      } ${className ?? ""}`}
+      className={`relative flex h-full min-h-[19rem] flex-col overflow-hidden rounded-2xl border border-dashed border-white/15 bg-[#141d2f] ${className ?? ""}`}
+      style={style}
     >
       <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-200">
         Advertisement
       </span>
-      <div className={`flex w-full items-center justify-center ${isBanner ? "" : "h-full min-h-[19rem]"}`}>
-        <GptSlot size={size} />
+      <div className="flex h-full min-h-[19rem] w-full items-center justify-center">
+        <GptSlot size={[300, 250]} />
       </div>
     </div>
   );

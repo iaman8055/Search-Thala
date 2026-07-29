@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArticleCard } from "./ArticleCard";
-import { AdCard, IN_CONTENT_SIZES } from "./AdSlot";
+import { AdCard } from "./AdSlot";
 import { ArticleSummary } from "@/lib/types";
 import { useDeviceId } from "@/lib/useDeviceId";
 import { useGetArticlesQuery, useLikeArticleMutation } from "@/store/articlesApi";
@@ -56,7 +56,7 @@ export function DesktopGrid() {
 
   const items: (
     | { kind: "article"; article: ArticleSummary; delayMs: number | null }
-    | { kind: "ad"; key: string; variant: number }
+    | { kind: "ad"; key: string; delayMs: number | null }
   )[] = [];
   // An ad slot after every 3rd post.
   const POSTS_PER_AD = 3;
@@ -64,16 +64,16 @@ export function DesktopGrid() {
   // together) rather than card-by-card.
   const CARDS_PER_ROW = 3;
   let newCount = 0;
-  let adCount = 0;
+  let lastDelayMs: number | null = null;
   articles.forEach((article, idx) => {
     const isNew = !seenIdsRef.current.has(article.id);
     const delayMs = isNew ? Math.floor(newCount / CARDS_PER_ROW) * 120 : null;
     if (isNew) newCount++;
+    lastDelayMs = delayMs;
     items.push({ kind: "article", article, delayMs });
-    if ((idx + 1) % POSTS_PER_AD === 0) {
-      items.push({ kind: "ad", key: `ad-${idx}`, variant: adCount });
-      adCount++;
-    }
+    // Ad slots animate in with the same delay as the post row they land
+    // in, so they arrive together instead of popping in on their own.
+    if ((idx + 1) % POSTS_PER_AD === 0) items.push({ kind: "ad", key: `ad-${idx}`, delayMs: lastDelayMs });
   });
 
   return (
@@ -97,12 +97,8 @@ export function DesktopGrid() {
               ) : (
                 <AdCard
                   key={item.key}
-                  variant={item.variant}
-                  className={
-                    IN_CONTENT_SIZES[item.variant % IN_CONTENT_SIZES.length][1] <= 100
-                      ? "sm:col-span-2 lg:col-span-3"
-                      : undefined
-                  }
+                  className={item.delayMs !== null ? "animate-card-in" : undefined}
+                  style={item.delayMs !== null ? { animationDelay: `${item.delayMs}ms` } : undefined}
                 />
               )
             )}
