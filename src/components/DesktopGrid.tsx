@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArticleCard } from "./ArticleCard";
-import { AdCard } from "./AdSlot";
+import { AdCard, IN_CONTENT_SIZES } from "./AdSlot";
 import { ArticleSummary } from "@/lib/types";
 import { useDeviceId } from "@/lib/useDeviceId";
 import { useGetArticlesQuery, useLikeArticleMutation } from "@/store/articlesApi";
@@ -56,21 +56,24 @@ export function DesktopGrid() {
 
   const items: (
     | { kind: "article"; article: ArticleSummary; delayMs: number | null }
-    | { kind: "ad"; key: string }
+    | { kind: "ad"; key: string; variant: number }
   )[] = [];
-  // Exactly one in-content ad slot, dropped in after the 4th article
-  // regardless of how many pages have loaded.
-  const IN_CONTENT_AFTER = 3;
+  // An ad slot after every 3rd post.
+  const POSTS_PER_AD = 3;
   // Desktop grid is 3 columns wide, so stagger by row (3 cards land
   // together) rather than card-by-card.
   const CARDS_PER_ROW = 3;
   let newCount = 0;
+  let adCount = 0;
   articles.forEach((article, idx) => {
     const isNew = !seenIdsRef.current.has(article.id);
     const delayMs = isNew ? Math.floor(newCount / CARDS_PER_ROW) * 120 : null;
     if (isNew) newCount++;
     items.push({ kind: "article", article, delayMs });
-    if (idx === IN_CONTENT_AFTER) items.push({ kind: "ad", key: `ad-${idx}` });
+    if ((idx + 1) % POSTS_PER_AD === 0) {
+      items.push({ kind: "ad", key: `ad-${idx}`, variant: adCount });
+      adCount++;
+    }
   });
 
   return (
@@ -92,7 +95,15 @@ export function DesktopGrid() {
                   style={item.delayMs !== null ? { animationDelay: `${item.delayMs}ms` } : undefined}
                 />
               ) : (
-                <AdCard key={item.key} />
+                <AdCard
+                  key={item.key}
+                  variant={item.variant}
+                  className={
+                    IN_CONTENT_SIZES[item.variant % IN_CONTENT_SIZES.length][1] <= 100
+                      ? "sm:col-span-2 lg:col-span-3"
+                      : undefined
+                  }
+                />
               )
             )}
           </div>
