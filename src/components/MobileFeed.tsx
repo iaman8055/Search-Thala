@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { useSwipeable } from "react-swipeable";
 import { CategoryTabs } from "./CategoryTabs";
@@ -16,6 +16,8 @@ const FEED_LIMIT = 50;
 
 // One ad slide is woven into the feed after every 3 posts.
 const POSTS_PER_AD = 3;
+// One ad slide gates category swipes after every 3 of them too.
+const CATEGORY_SWIPES_PER_AD = 3;
 
 type Slide = { kind: "article"; article: ArticleSummary } | { kind: "ad"; key: string };
 
@@ -191,22 +193,64 @@ function CategoryFeed({
 export function MobileFeed() {
   const deviceId = useDeviceId();
   const [category, setCategory] = useState<Category>("top");
+  const [adGateDirection, setAdGateDirection] = useState<1 | -1 | null>(null);
+
+  const categorySwipeCountRef = useRef(0);
+  const pendingCategoryRef = useRef<Category | null>(null);
 
   function changeCategory(direction: 1 | -1) {
     const currentIdx = CATEGORIES.findIndex((c) => c.key === category);
     const nextIdx = (currentIdx + direction + CATEGORIES.length) % CATEGORIES.length;
-    setCategory(CATEGORIES[nextIdx].key);
+    const nextCategory = CATEGORIES[nextIdx].key;
+
+    categorySwipeCountRef.current += 1;
+    if (categorySwipeCountRef.current % CATEGORY_SWIPES_PER_AD === 0) {
+      pendingCategoryRef.current = nextCategory;
+      setAdGateDirection(direction);
+    } else {
+      setCategory(nextCategory);
+    }
   }
+
+  function dismissAdGate() {
+    const next = pendingCategoryRef.current;
+    pendingCategoryRef.current = null;
+    setAdGateDirection(null);
+    if (next) setCategory(next);
+  }
+
+  const adGateHandlers = useSwipeable({
+    onSwipedLeft: dismissAdGate,
+    onSwipedRight: dismissAdGate,
+    onSwipedUp: dismissAdGate,
+    onSwipedDown: dismissAdGate,
+    preventScrollOnSwipe: true,
+    trackMouse: true,
+  });
 
   return (
     <div className="relative flex h-dvh flex-col overflow-hidden bg-[#0b1120]">
       <div className="flex-1 overflow-hidden">
-        <CategoryFeed
-          category={category}
-          deviceId={deviceId}
-          onCategoryChange={changeCategory}
-          onSelectCategory={setCategory}
-        />
+        {adGateDirection ? (
+          <div
+            {...adGateHandlers}
+            className={`relative flex h-full flex-col select-none overflow-hidden ${
+              adGateDirection === 1 ? "animate-reel-in-right" : "animate-reel-in-left"
+            }`}
+          >
+            <div className="absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-black/60 to-transparent p-4 pt-3">
+              <CategoryTabs active={category} onChange={setCategory} variant="overlay" />
+            </div>
+            <AdReelSlide />
+          </div>
+        ) : (
+          <CategoryFeed
+            category={category}
+            deviceId={deviceId}
+            onCategoryChange={changeCategory}
+            onSelectCategory={setCategory}
+          />
+        )}
       </div>
 
       <nav className="flex shrink-0 items-center justify-around border-t border-white/10 bg-black py-3">

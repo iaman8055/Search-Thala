@@ -82,3 +82,40 @@ body {
     animation: none;
   }
 }
+
+@keyframes reel-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes reel-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-reel-in-right {
+  animation: reel-in-right 0.35s ease-out both;
+}
+
+.animate-reel-in-left {
+  animation: reel-in-left 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-reel-in-right,
+  .animate-reel-in-left {
+    animation: none;
+  }
+}
