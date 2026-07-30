@@ -86,23 +86,17 @@ export function AdCard({ className, style }: { className?: string; style?: CSSPr
   );
 }
 
-/** Full-screen 300x250 ad gate shown between swipes on mobile. */
-export function AdInterstitial({ onClose }: { onClose: () => void }) {
+/** Full-height 300x250 ad slide dropped into the mobile reel feed — swipes like any other post. */
+export function AdReelSlide() {
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-[#0b1120] p-8 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-4 bg-[#0b1120] p-8 text-center">
       <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
         Advertisement
       </span>
       <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-dashed border-white/20 bg-[#141d2f]">
         <GptSlot size={[300, 250]} />
       </div>
-      <p className="text-xs text-slate-500">Ad closes automatically, or continue now</p>
-      <button
-        onClick={onClose}
-        className="rounded-full bg-white px-6 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-200"
-      >
-        Continue
-      </button>
+      <p className="text-xs text-slate-500">Swipe up to keep browsing</p>
     </div>
   );
 }
